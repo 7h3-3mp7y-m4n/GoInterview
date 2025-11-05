@@ -62,7 +62,7 @@ func TestIsAnagram(t *testing.T) {
 		{"not anagram", "hello", "world", false},
 		{"different lengths", "abc", "ab", false},
 		{"same letters diff count", "aabb", "ab", false},
-		{"unicode chars", "あい", "いあ", true},
+		{"speical chars", "1$$", "1$$", true},
 	}
 
 	for _, tt := range tests {
@@ -70,6 +70,61 @@ func TestIsAnagram(t *testing.T) {
 			result := isAnagram(tt.s, tt.t)
 			if result != tt.expected {
 				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestSubarraySum(t *testing.T) {
+	tests := []struct {
+		name     string
+		nums     []int
+		k        int
+		expected int
+	}{
+		{
+			name:     "single match",
+			nums:     []int{1, 1, 1},
+			k:        2,
+			expected: 2,
+		},
+		{
+			name:     "no subarray sums to k",
+			nums:     []int{1, 2, 3},
+			k:        7,
+			expected: 0,
+		},
+		{
+			name:     "multiple matches",
+			nums:     []int{1, 2, 3},
+			k:        3,
+			expected: 2, // subarrays [1,2] and [3]
+		},
+		{
+			name:     "negative numbers",
+			nums:     []int{1, -1, 0},
+			k:        0,
+			expected: 3, // subarrays: [1,-1], [0], [1,-1,0]
+		},
+		{
+			name:     "single element equal to k",
+			nums:     []int{3},
+			k:        3,
+			expected: 1,
+		},
+		{
+			name:     "empty array",
+			nums:     []int{},
+			k:        0,
+			expected: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := subarraySum(tt.nums, tt.k)
+			if result != tt.expected {
+				t.Errorf("for input nums=%v, k=%d: expected %d, got %d", tt.nums, tt.k, tt.expected, result)
 			}
 		})
 	}

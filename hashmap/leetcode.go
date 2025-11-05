@@ -40,3 +40,36 @@ func isAnagram(s, t string) bool {
 	}
 	return true
 }
+
+// Prefix Sum ???
+func preFixSum(num []int) ([]int, int) {
+	if len(num) == 0 {
+		return []int{}, 0
+	}
+	temp := make([]int, len(num))
+	sum := 0
+
+	for i, val := range num {
+		sum += val
+		temp[i] = sum
+	}
+	return temp, sum
+}
+
+func subarraySum(nums []int, k int) int {
+	count := 0
+	prefixSum := 0
+	freq := make(map[int]int)
+	freq[0] = 1 // base case
+	for _, num := range nums {
+		prefixSum += num
+		// check if prefixSum - k has been seen
+		if val, exists := freq[prefixSum-k]; exists {
+			count += val
+		}
+
+		freq[prefixSum]++
+	}
+
+	return count
+}
