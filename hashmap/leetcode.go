@@ -56,6 +56,7 @@ func preFixSum(num []int) ([]int, int) {
 	return temp, sum
 }
 
+// 560 subarray sum = k
 func subarraySum(nums []int, k int) int {
 	count := 0
 	prefixSum := 0
@@ -72,4 +73,22 @@ func subarraySum(nums []int, k int) int {
 	}
 
 	return count
+}
+
+// 523 Continuous Subarray Sum
+func checkSubarraySum(nums []int, k int) bool {
+	prefixMod := 0
+	firstIndex := make(map[int]int)
+	firstIndex[0] = -1
+	for i, num := range nums {
+		prefixMod = (prefixMod + num) % k
+		if idx, ok := firstIndex[prefixMod]; ok {
+			if i-idx >= 2 {
+				return true
+			}
+		} else {
+			firstIndex[prefixMod] = i
+		}
+	}
+	return false
 }
