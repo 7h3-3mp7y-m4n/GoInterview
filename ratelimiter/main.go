@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -14,6 +14,10 @@ type rateLimiter struct {
 	token int
 	time  time.Time
 	mu    sync.Mutex
+}
+
+type chanrateLimiter struct {
+	tokens chan struct{}
 }
 
 func NewRateLimiter(rate, burst int) *rateLimiter {
@@ -42,11 +46,56 @@ func (rl *rateLimiter) Allow() bool {
 	return false
 }
 
-func main() {
-	rl := NewRateLimiter(5, 5)
-	for i := 0; i < 20; i++ {
-		allowed := rl.Allow()
-		fmt.Printf("%02d: allowed=%v (tokens=%d)\n", i, allowed, rl.token)
-		time.Sleep(1000 * time.Millisecond)
+func RateLimitMiddleware(rl *rateLimiter) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !rl.Allow() {
+				w.WriteHeader(http.StatusTooManyRequests)
+				w.Write([]byte("429 - rate limit exceeded"))
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
 	}
+}
+
+func chanRateLimiter(rate int, burst int) *chanrateLimiter {
+	rl := &chanrateLimiter{
+		tokens: make(chan struct{}),
+	}
+	//fill the bucket
+	for i := 0; i < burst; i++ {
+		rl.tokens <- struct{}{}
+	}
+	go func() {
+		ticker := time.NewTicker(time.Second / time.Duration(rate))
+		defer ticker.Stop()
+		for range ticker.C {
+			select {
+			case rl.tokens <- struct{}{}:
+				//add the token
+			default:
+				// full bucket
+			}
+		}
+	}()
+	return rl
+
+}
+func (rl *chanrateLimiter) ChanAllow() bool {
+	select {
+	case <-rl.tokens:
+		return true
+	default:
+		return false
+	}
+}
+
+func main() {
+	rl := NewRateLimiter(10, 20)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("ok"))
+	})
+	http.ListenAndServe(":8080", RateLimitMiddleware(rl)(mux))
 }
